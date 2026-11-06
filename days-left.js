@@ -3,8 +3,10 @@
 
 const NOW = new Date();
 const CURRENT_YEAR = NOW.getFullYear();
-const START_OF_YEAR = new Date(CURRENT_YEAR, 0, 1);
-const DAY_OF_YEAR = Math.floor((NOW - START_OF_YEAR) / 86400000) + 1;
+// Compare local calendar dates in UTC so daylight-saving changes cannot shift a day.
+const START_OF_YEAR = Date.UTC(CURRENT_YEAR, 0, 1);
+const TODAY = Date.UTC(CURRENT_YEAR, NOW.getMonth(), NOW.getDate());
+const DAY_OF_YEAR = Math.floor((TODAY - START_OF_YEAR) / 86400000) + 1;
 const IS_LEAP_YEAR = CURRENT_YEAR % 4 === 0 && (CURRENT_YEAR % 100 !== 0 || CURRENT_YEAR % 400 === 0);
 const DAYS_IN_YEAR = IS_LEAP_YEAR ? 366 : 365;
 
@@ -24,7 +26,6 @@ const ROWS = Math.ceil(DAYS_IN_YEAR / COLUMNS);
 
 const COLOR_FILLED = new Color("#ffffff");
 const COLOR_UNFILLED = new Color("#ffffff", 0.4);
-const COLOR_CURRENT_DAY = COLOR_FILLED;
 
 widget.setPadding(PADDING_TOP_BOTTOM, PADDING_LEFT_RIGHT, PADDING_TOP_BOTTOM, PADDING_LEFT_RIGHT);
 
@@ -41,12 +42,12 @@ for (let row = 0; row < ROWS; row++) {
 
   for (let col = 0; col < COLUMNS; col++) {
     const day = row * COLUMNS + col + 1;
-    if (day > DAYS_IN_YEAR);
+    if (day > DAYS_IN_YEAR) break;
 
     const circleText = rowStack.addText("●");
     circleText.font = circleFont;
     circleText.lineLimit = 1;
-    circleText.textColor = day <= DAY_OF_YEAR ? COLOR_FILLED : day > DAYS_IN_YEAR ? new Color("#000000") : COLOR_UNFILLED;
+    circleText.textColor = day <= DAY_OF_YEAR ? COLOR_FILLED : COLOR_UNFILLED;
   }
 }
 
@@ -60,13 +61,16 @@ textRow.layoutHorizontally();
 
 const yearText = textRow.addText(CURRENT_YEAR.toString())
 yearText.font = font
+yearText.textColor = COLOR_FILLED;
 textRow.addSpacer()
 
 const daysLeftGroup = textRow.addStack()
 daysLeftGroup.layoutHorizontally()
 
-const nDaysLeft = daysLeftGroup.addText((365-DAY_OF_YEAR).toString())
+// Today is already filled in the grid; count only the days after today.
+const nDaysLeft = daysLeftGroup.addText((DAYS_IN_YEAR - DAY_OF_YEAR).toString())
 nDaysLeft.font = font
+nDaysLeft.textColor = COLOR_FILLED;
 
 const daysLeft = daysLeftGroup.addText(" days left")
 daysLeft.font = font
@@ -76,6 +80,6 @@ daysLeft.textColor = new Color("#ffffff", 0.4)
 if (config.runsInWidget) {
   Script.setWidget(widget);
 } else {
-  widget.presentLarge();
+  await widget.presentLarge();
 }
 Script.complete();
